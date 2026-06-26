@@ -1,4 +1,4 @@
-# 🏥 Sistema de Mantenimiento Predictivo — Equipos de Imagenología Médica
+# Sistema de Mantenimiento Predictivo — Equipos de Imagenología Médica
 
 > Pipeline de Machine Learning para predecir fallos en equipos de imagenología médica mediante una arquitectura **Classifier Chain** de dos modelos XGBoost encadenados.
 
@@ -8,7 +8,7 @@
 
 ---
 
-## 📋 Descripción general
+## Descripción general
 
 Este sistema analiza **857 órdenes de mantenimiento correctivo** de cuatro tipos de equipos de imagenología (Arco C, RX Fijo, RX Móvil y Mamografía) para predecir, ante un nuevo evento de fallo:
 
@@ -19,7 +19,7 @@ La predicción del Modelo A (periodo de fallo) se incorpora como *feature* adici
 
 ---
 
-## 🎯 Resultados
+## Resultados
 
 | Modelo | Target | Clases | F1-macro baseline | F1-macro XGBoost | Mejora |
 |--------|--------|--------|:-----------------:|:----------------:|:------:|
@@ -30,7 +30,7 @@ La predicción del Modelo A (periodo de fallo) se incorpora como *feature* adici
 
 ---
 
-## 🔬 Arquitectura del pipeline
+## Arquitectura del pipeline
 
 ```
 Excel del hospital
@@ -154,7 +154,7 @@ Excel del hospital
 
 ---
 
-## 🧪 Experimentos adicionales
+## Experimentos adicionales
 
 | Experimento | F1-macro Modelo B | Resultado |
 |-------------|:-----------------:|-----------|
@@ -179,7 +179,7 @@ Excel del hospital
 
 ---
 
-## 🚦 Semáforo de confianza
+## Semáforo de confianza
 
 Los protocolos y check lists se asignan a una de tres categorías de confianza basadas en el F1 del Modelo B por sistema:
 
@@ -191,7 +191,7 @@ Los protocolos y check lists se asignan a una de tres categorías de confianza b
 
 ---
 
-## ⚙️ Requisitos
+## Requisitos
 
 ```python
 pandas
@@ -212,7 +212,7 @@ pip install xgboost catboost umap-learn plotly
 
 ---
 
-## 🚀 Cómo ejecutar
+## Cómo ejecutar
 
 1. Abrir `Versión_final_modelo_de_mtto_predictivo.ipynb` en Google Colab.
 2. Ejecutar las celdas en orden secuencial (Bloques 1 → 2 → 3 → 4).
@@ -220,11 +220,11 @@ pip install xgboost catboost umap-learn plotly
 4. Al llegar a la **Celda 31**, subir el mismo archivo nuevamente para la generación de check lists.
 5. Los archivos CSV de resultados se guardan automáticamente en `/content/`.
 
-> ⚠️ El dataset del hospital no se incluye en este repositorio por restricciones de confidencialidad clínica.
+> El dataset del hospital no se incluye en este repositorio por restricciones de confidencialidad clínica.
 
 ---
 
-## ⚠️ Limitaciones
+## Limitaciones
 
 - Dataset pequeño (1,003 registros, 10 clases en Modelo B)
 - Clases minoritarias con pocos registros: `usuario` (30) y `seguridad del paciente` (37)
@@ -232,7 +232,7 @@ pip install xgboost catboost umap-learn plotly
 
 ---
 
-## 🔭 Trabajo futuro
+## Trabajo futuro
 
 - [ ] Ampliar dataset a ~2,000 registros con datos reales
 - [ ] Aplicar SMOTE para clases minoritarias
