@@ -105,7 +105,7 @@ Excel del hospital
 
 ---
 
-## 🛠️ Features del modelo
+## Features del modelo
 
 ### Modelo A — Periodo de fallo (10 features)
 
@@ -143,7 +143,7 @@ Excel del hospital
 
 ---
 
-## 📈 Análisis exploratorio destacado
+## Análisis exploratorio destacado
 
 - **Asimetría TBF = 4.31** → justifica clasificación sobre regresión
 - **P(fallo ≤ 15 días) = 42.9%** → caída casi vertical en curva de supervivencia
@@ -167,7 +167,7 @@ Excel del hospital
 
 ---
 
-## 📂 Archivos generados
+## Archivos generados
 
 | Archivo | Descripción |
 |---------|-------------|
