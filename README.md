@@ -76,7 +76,7 @@ Excel del hospital
 
 ---
 
-## 📊 Equipos y sistemas cubiertos
+## Equipos y sistemas cubiertos
 
 **Tipos de equipo analizados:**
 
@@ -158,7 +158,7 @@ Excel del hospital
 
 | Experimento | F1-macro Modelo B | Resultado |
 |-------------|:-----------------:|-----------|
-| XGBoost independiente | **0.828** | ✅ Mejor resultado |
+| XGBoost independiente | **0.828** | Mejor resultado |
 | Classifier Chain A→B | 0.767 | ↓ No mejora — targets independientes |
 | Classifier Chain B→A | 0.754 | ↓ No mejora |
 | CatBoost | 0.806 | ↓ XGBoost más robusto globalmente |
