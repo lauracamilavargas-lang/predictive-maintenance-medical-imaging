@@ -242,6 +242,10 @@ pip install xgboost catboost umap-learn plotly
 
 ---
 
-## 📄 Licencia
+## Licencia
 
-Proyecto académico desarrollado en la Universidad Autónoma de Occidente. Los datos clínicos utilizados son propiedad del hospital colaborador y no se distribuyen en este repositorio.
+El código de este repositorio está bajo licencia [MIT](LICENSE).
+
+Los datos clínicos utilizados para entrenar los modelos son propiedad del hospital 
+colaborador y no se incluyen en este repositorio, los modelos entrenados tampoco 
+se distribuyen por contener patrones derivados de información confidencial.
