@@ -302,9 +302,8 @@ pip install xgboost umap-learn plotly rapidfuzz imbalanced-learn
 ## Autoras
 
 **Laura Camila Vargas Delgado** · Ingeniería Biomédica · Universidad Autónoma de Occidente 
-
-**Valeria Mosquera Amador** · Ingeniería Biomédica · Universidad Autónoma de Occidente 
-Semillero RIDGE — Ingeniería Clínica, Salud Digital y Educación  
+**Valeria Mosquera Amador** · Ingeniería Biomédica · Universidad Autónoma de Occidente           
+Semillero RIDGE — Ingeniería Clínica, Salud Digital y Educación               
 Proyecto de pasantía organizacional en colaboración con Fundación Valle del Lili · Cali, Colombia
 
 ---
