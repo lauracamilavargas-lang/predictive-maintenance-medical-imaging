@@ -296,7 +296,7 @@ pip install xgboost umap-learn plotly rapidfuzz imbalanced-learn
 ![Baseline vs XGBoost B](assets/baseline_vs_xgboost_modelo_b.png)
 
 ### Distribución por equipo
-![Distribución urgencia](distribucion_periodo_por_equipo.png)
+![Distribución urgencia](assets/distribucion_periodo_por_equipo.png)
 
 ---
 
