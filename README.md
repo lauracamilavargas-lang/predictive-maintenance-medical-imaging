@@ -30,6 +30,35 @@ El objetivo no es predicción en tiempo real sino la construcción de **checklis
 
 ---
 
+## Estructura del repositorio
+
+```
+📁 predictive-maintenance-medical-imaging
+├── 📓 Modelo_para_protocolo_predictivo.ipynb   ← notebook principal
+├── 📄 checklist_final.html                     ← checklist interactivo por equipo
+├── 📄 README.md
+├── 📄 LICENSE
+├── 📁 assets/
+│   ├── matriz_confusion_modelo_a.png
+│   ├── matriz_confusion_modelo_b.png
+│   ├── feature_importance_modelo_a.png
+│   ├── feature_importance_modelo_b.png
+│   ├── baseline_vs_xgboost_modelo_a.png
+│   ├── baseline_vs_xgboost_modelo_b.png
+│   └── distribucion_periodo_por_equipo.png
+└── 📁 models/
+    ├── modelo_a.ubj        ← clasificador urgencia (XGBoost)
+    ├── modelo_b.ubj        ← clasificador sistema (XGBoost)
+    ├── enc_a.pkl           ← OrdinalEncoder Modelo A
+    ├── enc_b.pkl           ← OrdinalEncoder Modelo B
+    ├── le_b.pkl            ← LabelEncoder target Modelo B
+    └── mapa_periodo.pkl    ← mapa clases Modelo A
+```
+
+> El dataset del hospital no se incluye por restricciones de confidencialidad clínica.
+
+---
+
 ## Arquitectura del pipeline
 
 ```
@@ -127,7 +156,7 @@ Excel del hospital
 - **Celda 25** — Experimento SMOTE: total y parcial (60%), justificación de no uso
 
 ### Bloque 6 — Protocolos (Celdas 26–27)
-- **Celda 26** — Tabla maestra: tipo × urgencia × sistema con Exact Match, CV por equipo, componente que falló más frecuente, tipo de solución y semáforo F1 + n_casos
+- **Celda 26** — Tabla maestra: tipo × urgencia × sistema con Exact Match, CV por equipo, componente más frecuente, tipo de solución y semáforo F1 + n_casos
 - **Celda 27** — Checklist operativo por tipo de equipo ordenado por nivel de riesgo
 
 ---
@@ -220,25 +249,39 @@ Excel del hospital
 
 ---
 
-## Archivos generados
+## Resultados visuales
 
-| Archivo | Descripción |
-|---------|-------------|
-| `tabla_maestra_con_semaforo.csv` | Base empírica: tipo × urgencia × sistema con métricas históricas y semáforo |
-| `tabla_reclasificada_f1.csv` | Cada sistema en su única categoría de riesgo + semáforo F1 Modelo B |
-| `checklist_base.csv` | Checklist completa por tipo de equipo con acciones y tiempos |
-| `modelo_a.ubj` | Clasificador urgencia (XGBoost formato nativo) |
-| `modelo_b.ubj` | Clasificador sistema (XGBoost formato nativo) |
-| `enc_a.pkl` | OrdinalEncoder features Modelo A |
-| `enc_b.pkl` | OrdinalEncoder features Modelo B |
-| `le_b.pkl` | LabelEncoder target Modelo B |
-| `mapa_periodo.pkl` | Mapa clases Modelo A |
+### Modelo A — Urgencia
+![Matriz de confusión A](assets/matriz_confusion_modelo_a.png)
+![Feature importance A](assets/feature_importance_modelo_a.png)
+![Baseline vs XGBoost A](assets/baseline_vs_xgboost_modelo_a.png)
+
+### Modelo B — Sistema afectado
+![Matriz de confusión B](assets/matriz_confusion_modelo_b.png)
+![Feature importance B](assets/feature_importance_modelo_b.png)
+![Baseline vs XGBoost B](assets/baseline_vs_xgboost_modelo_b.png)
+
+### Distribución por equipo
+![Distribución urgencia](assets/distribucion_periodo_por_equipo.png)
+
+---
+
+## Checklist interactivo
+
+El checklist operativo por tipo de equipo está disponible en [`checklist_final.html`](checklist_final.html). Incluye para cada sistema:
+
+- Clasificación de urgencia dominante (⚡ Alta urgencia · 📅 Programable · ✅ Preventivo)
+- Distribución histórica %Alta / %Prog / %Prev con barras visuales
+- N total de registros históricos
+- Horas de parada promedio y máxima del componente más frecuente
+- Tasa de cambio de componente
+- Componente físico top a verificar
+- Acción principal recomendada
+- F1 del Modelo B y semáforo de confianza 🟢 🟡 🔴
 
 ---
 
 ## Semáforo de confianza
-
-Los protocolos y checklists se asignan a una de tres categorías basadas en F1 del Modelo B por sistema y número de casos históricos:
 
 | Semáforo | Criterio | Acción recomendada |
 |----------|----------|--------------------|
@@ -282,25 +325,6 @@ pip install xgboost umap-learn plotly rapidfuzz imbalanced-learn
 
 ---
 
-
-## Resultados visuales
-
-### Modelo A — Urgencia
-![Matriz de confusión A](assets/matriz_confusion_modelo_a.png)
-![Feature importance A](assets/feature_importance_modelo_a.png)
-![Baseline vs XGBoost A](assets/baseline_vs_xgboost_modelo_a.png)
-
-### Modelo B — Sistema afectado
-![Matriz de confusión B](assets/matriz_confusion_modelo_b.png)
-![Feature importance B](assets/feature_importance_modelo_b.png)
-![Baseline vs XGBoost B](assets/baseline_vs_xgboost_modelo_b.png)
-
-### Distribución por equipo
-![Distribución urgencia](assets/distribucion_periodo_por_equipo.png)
-
----
-
-
 ## Limitaciones
 
 - Dataset de un único hospital — la generalización a otras instituciones requiere reentrenamiento
@@ -320,7 +344,6 @@ pip install xgboost umap-learn plotly rapidfuzz imbalanced-learn
 
 ## Autoras
 
-
 **Laura Camila Vargas Delgado** · Ingeniería Biomédica · Universidad Autónoma de Occidente  
 **Valeria Mosquera Amador** · Ingeniería Biomédica · Universidad Autónoma de Occidente  
 Semillero RIDGE — Ingeniería Clínica, Salud Digital y Educación  
@@ -332,6 +355,4 @@ Proyecto de pasantía organizacional en colaboración con Fundación Valle del L
 
 El código de este repositorio está bajo licencia [MIT](LICENSE).
 
-Los datos clínicos utilizados para entrenar los modelos son propiedad del hospital
-colaborador y no se incluyen en este repositorio. Los modelos entrenados tampoco
-se distribuyen por contener patrones derivados de información confidencial.
+Los datos clínicos utilizados para entrenar los modelos son propiedad del hospital colaborador y no se incluyen en este repositorio. Los modelos entrenados tampoco se distribuyen por contener patrones derivados de información confidencial.
