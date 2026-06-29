@@ -282,6 +282,25 @@ pip install xgboost umap-learn plotly rapidfuzz imbalanced-learn
 
 ---
 
+
+## Resultados visuales
+
+### Modelo A — Urgencia
+![Matriz de confusión A](assets/matriz_confusion_modelo_a.png)
+![Feature importance A](assets/feature_importance_modelo_a.png)
+![Baseline vs XGBoost A](assets/baseline_vs_xgboost_modelo_a.png)
+
+### Modelo B — Sistema afectado
+![Matriz de confusión B](assets/matriz_confusion_modelo_b.png)
+![Feature importance B](assets/feature_importance_modelo_b.png)
+![Baseline vs XGBoost B](assets/baseline_vs_xgboost_modelo_b.png)
+
+### Distribución por equipo
+![Distribución urgencia](assets/distribucion_periodo_por_equipo.png)
+
+---
+
+
 ## Limitaciones
 
 - Dataset de un único hospital — la generalización a otras instituciones requiere reentrenamiento
