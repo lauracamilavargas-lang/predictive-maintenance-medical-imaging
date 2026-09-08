@@ -1,63 +1,76 @@
 # Sistema de Mantenimiento Predictivo — Equipos de Imagenología Médica
 
-> Pipeline de Machine Learning para predecir fallos en equipos de imagenología médica mediante dos modelos XGBoost independientes para urgencia y sistema afectado.
+Metodología de mantenimiento predictivo para equipos biomédicos de funcionamiento basado en emisión de radiación ionizante. La capa predictiva es un clasificador binario XGBoost (Modelo A) que demuestra que la recurrencia temprana de fallas es estadísticamente predecible; sobre esa base se construye una matriz histórica de priorización y, a partir de ella, los protocolos de mantenimiento.
 
-**Desarrollado en:** Universidad Autónoma de Occidente · Ingeniería Biomédica  
-**Período del dataset:** 2020 – 2025  
-**Entorno de ejecución:** Google Colab
-
----
+Desarrollado en: Universidad Autónoma de Occidente · Ingeniería Biomédica
+Período del dataset: 2020 – 2025
+Entorno de ejecución: Google Colab
 
 ## Descripción general
 
-Este sistema analiza **1.230 órdenes de mantenimiento correctivo** de siete tipos de equipos de imagenología (TAC, Angiografía, Fluoroscopía, RX Fijo, RX Móvil, Arco C y Mamografía) para predecir, ante un nuevo evento de fallo:
+El sistema analiza las órdenes de mantenimiento correctivo de siete tipos de equipos de imagenología (TAC, Angiografía, Fluoroscopía, RX Fijo, RX Móvil, Arco C y Mamografía) registradas entre 2020 y 2025. Tras el pre-procesamiento y el filtrado por trazabilidad temporal, el conjunto de modelado (`df_modelo`) queda con 1.199 registros válidos.
 
-1. **¿Cuándo volverá a fallar el equipo?** → clasificado en tres niveles de urgencia operacional.
-2. **¿Qué sistema del equipo fallará?** → identificado entre 10 categorías técnicas.
+La pregunta que responde la capa predictiva es binaria: ante un evento de fallo, ¿el equipo volverá a fallar dentro de un horizonte de 30 días? Se clasifica cada evento como **Requiere acción** (próxima falla en ≤30 días) o **Estable** (después). El entregable central no es un modelo de predicción en tiempo real, sino una metodología que traduce el fenómeno de recurrencia temprana en listas de chequeo de mantenimiento basadas en evidencia histórica.
 
-El objetivo no es predicción en tiempo real sino la construcción de **checklists de mantenimiento preventivo** basados en evidencia histórica, validados por modelos predictivos con F1-macro > 0.87.
+La metodología se organiza en tres capas separadas:
 
----
+1. **Modelo A (XGBoost binario)** — demuestra que la recurrencia temprana es predecible.
+2. **Matriz histórica de priorización** — localiza y prioriza sistemas y componentes por recurrencia observada, frecuencia y nivel de evidencia. No cruza predicciones individuales del modelo.
+3. **Protocolo / checklist** — se construye a partir de la matriz, los manuales del fabricante y el criterio de ingeniería clínica; nunca directamente de las salidas del modelo.
 
 ## Resultados
 
-| Modelo | Target | Clases | F1-macro baseline | F1-macro XGBoost | Mejora |
-|--------|--------|--------|:-----------------:|:----------------:|:------:|
-| **Modelo A** | Periodo de fallo | 3 | 0.211 | **0.872** | +0.661 |
-| **Modelo B** | Sistema afectado | 10 | 0.028 | **0.910** | +0.882 |
+Selección del Modelo A en dos etapas: comparación en conjunto de prueba y validación temporal.
 
-**Exact Match conjunto** (ambos modelos aciertan en el mismo registro): calculado por tipo de equipo en Celda 26.
+**Etapa 1 — Conjunto de prueba (split aleatorio, F1-macro a umbral por defecto)**
 
----
+| Modelo              | F1-macro |
+|---------------------|----------|
+| Baseline (Dummy)    | 0.389    |
+| Regresión Logística | 0.647    |
+| Random Forest       | 0.658    |
+| XGBoost             | 0.651    |
+
+Random Forest y XGBoost quedan en empate técnico (diferencia de 0.007, dentro del ruido de muestreo). La Regresión Logística por debajo de los no lineales es coherente con una frontera de decisión no linealmente separable.
+
+**Etapa 2 — Validación temporal expansiva (walk-forward)**
+
+| Métrica                              | XGBoost | Random Forest |
+|--------------------------------------|---------|---------------|
+| F1-macro                             | 0.616   | 0.625         |
+| Recall clase "Requiere acción"       | 0.723   | 0.742         |
+| Desviación de F1-macro entre folds   | 0.018   | 0.027         |
+
+Ambos modelos son estadísticamente equivalentes, con Random Forest levemente por delante en F1-macro y recall (dentro del ruido). La validación cruzada estratificada de 5 folds confirma la estabilidad: F1-macro medio de 0.628 (desviación 0.042), a 0.023 del conjunto de prueba.
+
+**Selección de XGBoost.** No se elige por rendir más —Random Forest incluso presenta un recall temporal ligeramente superior—, sino por mejor generalización (brecha train–test de +0.027 frente a +0.047 de Random Forest), mayor estabilidad entre periodos y mayor parsimonia (profundidad 2 frente a 5), características prioritarias para un modelo destinado a anticipar fallas futuras.
 
 ## Estructura del repositorio
 
 ```
-📁 predictive-maintenance-medical-imaging
-├── 📓 Modelo_para_protocolo_predictivo.ipynb   ← notebook principal
-├── 📄 checklist_final.html                     ← checklist interactivo por equipo
-├── 📄 README.md
-├── 📄 LICENSE
-├── 📁 assets/
-│   ├── matriz_confusion_modelo_a.png
-│   ├── matriz_confusion_modelo_b.png
-│   ├── feature_importance_modelo_a.png
-│   ├── feature_importance_modelo_b.png
-│   ├── baseline_vs_xgboost_modelo_a.png
-│   ├── baseline_vs_xgboost_modelo_b.png
-│   └── distribucion_periodo_por_equipo.png
-└── 📁 models/
-    ├── modelo_a.ubj        ← clasificador urgencia (XGBoost)
-    ├── modelo_b.ubj        ← clasificador sistema (XGBoost)
-    ├── enc_a.pkl           ← OrdinalEncoder Modelo A
-    ├── enc_b.pkl           ← OrdinalEncoder Modelo B
-    ├── le_b.pkl            ← LabelEncoder target Modelo B
-    └── mapa_periodo.pkl    ← mapa clases Modelo A
+predictive-maintenance-medical-imaging/
+├── Modelo_para_protocolo_predictivo_TG.ipynb   # notebook principal
+├── README.md
+├── LICENSE
+├── anexo_completo.html                         # notebook exportado (código + salidas)
+├── matriz_priorizacion.csv                     # matriz histórica de priorización
+├── matriz_priorizacion.html                    # versión navegable de la matriz
+└── assets/                                      # figuras generadas (fondo blanco)
+    ├── analisis_tbf.png
+    ├── distribucion_target.png
+    ├── recurrencia_por_tipo.png
+    ├── resumen_por_tipo.png
+    ├── features_numericas.png
+    ├── separabilidad_umap.png
+    ├── variables_modelo_a.png
+    ├── comparativa_4_modelos_a.png
+    ├── comparativa_4_modelos_clase_a.png
+    ├── validacion_temporal_comparativa.png
+    ├── desempeno_por_tipo.png
+    └── sensibilidad_horizonte.png
 ```
 
-> El dataset del hospital no se incluye por restricciones de confidencialidad clínica.
-
----
+El dataset del hospital no se incluye por restricciones de confidencialidad clínica.
 
 ## Arquitectura del pipeline
 
@@ -65,282 +78,198 @@ El objetivo no es predicción en tiempo real sino la construcción de **checklis
 Excel del hospital
         │
         ▼
-┌─────────────────────────────────┐
-│  Bloque 1 — Pre-procesamiento   │
-│  · Limpieza y estandarización   │
-│  · Cálculo de TBF               │
-│  · Índice de criticidad (1-5)   │
-│  · Features temporales          │
-│  · df_modelo: 1.199 registros   │
-└────────────┬────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────┐
-│  Bloque 2 — EDA                 │
-│  · Distribución de targets      │
-│  · UMAP 2D/3D (Modelo A y B)    │
-│  · Agrupación de componentes    │
-│  · Curva de supervivencia       │
-└────────────┬────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────┐
-│  Bloque 3 — Modelado            │
-│  · DummyClassifier (baseline)   │
-│  · Modelo A: XGBoost 3 clases   │
-│  · Modelo B: XGBoost 10 clases  │
-└────────────┬────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────┐
-│  Bloque 4 — Exportación         │
-│  · Artefactos .ubj y .pkl       │
-│  · Imágenes PNG                 │
-│  · Visualizaciones comparativas │
-└────────────┬────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────┐
-│  Bloque 5 — Validación          │
-│  · Validación cruzada 5-fold    │
-│  · Robustez con ruido gaussiano │
-│  · Experimento SMOTE            │
-└────────────┬────────────────────┘
-             │
-             ▼
-┌─────────────────────────────────┐
-│  Bloque 6 — Protocolos          │
-│  · Tabla maestra tipo×urgencia  │
-│  · Semáforo de confianza        │
-│  · Check lists por equipo       │
-└─────────────────────────────────┘
+┌─────────────────────────────────────────┐
+│  Bloque 1 — Pre-procesamiento           │
+│  · Limpieza y estandarización           │
+│  · Criticidad global (1-5) y temporal   │
+│  · Features temporales anti-fuga        │
+│  · df_modelo: 1.199 registros           │
+└──────────────┬──────────────────────────┘
+               ▼
+┌─────────────────────────────────────────┐
+│  Bloque 2 — EDA                         │
+│  · Construcción del target (30 días)    │
+│  · Distribución TBF y umbral            │
+│  · Recurrencia por tipo                 │
+│  · Separabilidad UMAP (silhouette)      │
+└──────────────┬──────────────────────────┘
+               ▼
+┌─────────────────────────────────────────┐
+│  Bloque 3 — Modelado y entrenamiento    │
+│  · Baseline, LR, RF, XGBoost            │
+│  · Modelo A (XGBoost binario)           │
+│  · Validación temporal expansiva        │
+│  · Desempeño por tipo · sensibilidad    │
+└──────────────┬──────────────────────────┘
+               ▼
+┌─────────────────────────────────────────┐
+│  Bloque 4 — Validación del modelo       │
+│  · Validación cruzada 5-fold            │
+│  · Experimento de balanceo de clases    │
+└──────────────┬──────────────────────────┘
+               ▼
+┌─────────────────────────────────────────┐
+│  Bloque 5 — Capa descriptiva            │
+│  · Frecuencia por sistema               │
+│  · Pareto de componentes                │
+│  · Heatmap recurrencia tipo × sistema   │
+└──────────────┬──────────────────────────┘
+               ▼
+┌─────────────────────────────────────────┐
+│  Bloque 6 — Construcción de protocolos  │
+│  · Matriz histórica de priorización     │
+│  · Base para las listas de chequeo      │
+└─────────────────────────────────────────┘
 ```
-
----
 
 ## Estructura del notebook
 
-### Bloque 1 — Preprocesamiento (Celdas 1–7)
-- **Celda 1** — Carga del archivo Excel desde Google Colab
-- **Celda 2** — Estandarización de nombres de columnas
-- **Celda 2b** — Limpieza de columnas de texto y corrección de `sistema_general`
-- **Celda 3** — Limpieza de horas de parada (imputación con 0)
-- **Celda 4** — Variable binaria `hubo_cambio_componente`
-- **Celda 5** — Índice de criticidad 1–5 por equipo × sistema
-- **Celda 6** — Variables temporales: TBF, edad, fallos acumulados
-- **Celda 7** — Preparación final del dataset (`df_modelo`, 1.199 registros)
+**Bloque 1 — Pre-procesamiento**
+Carga y consolidación del Excel; estandarización de columnas; limpieza de texto y corrección de `sistema_general` (11 clases consolidadas); tratamiento de horas de parada; variable de cambio de componente; índice de criticidad 1–5 por tipo × sistema y su versión temporal past-only; features temporales por equipo (TBF, fallos en 30 y 90 días, edad, horas de parada acumuladas) y derivadas (TBF promedio histórico, tendencia, tasa de fallo, TBF anterior). Todas las ventanas usan solo información anterior a cada evento. Resultado: `df_modelo` con 1.199 registros.
 
-### Bloque 2 — EDA (Celdas 8–19)
-- **Celda 8** — Target `periodo_fallo` (Alta urgencia 43% · Programable 46% · Preventivo 10%)
-- **Celda 9** — Target `sistema_general_target` (10 clases, umbral mínimo 30 registros)
-- **Celda 10** — Resumen interactivo por equipo
-- **Celdas 11–12** — Variables de entrada Modelo A y B
-- **Celda 13** — Distribución del target `periodo_fallo`
-- **Celda 14** — Distribución TBF: histograma, medianas, boxplot, curva de supervivencia
-- **Celda 15** — Outliers en features numéricas
-- **Celda 16** — Agrupación de componentes (`componente_agrupado`) con fuzzy matching
-- **Celdas 17–19** — Variables Modelo B, distribución sistema, UMAP 2D/3D
+**Bloque 2 — EDA**
+Construcción del target `periodo_fallo` (binario, umbral de 30 días hacia adelante) y su trazabilidad; análisis de la distribución del TBF que fundamenta el umbral; verificación de censura por cierre del estudio; resumen por tipo de equipo; variables de entrada del Modelo A; distribución del target; patrón de recurrencia por tipo; caracterización de features numéricas; análisis bivariado; separabilidad del target por UMAP con coeficiente de silueta.
 
-### Bloque 3 — Modelado (Celdas 20–22)
-- **Celda 20** — Baseline DummyClassifier (F1-macro A: 0.211 · B: 0.028)
-- **Celda 21** — Modelo A: XGBoost, 10 features, F1-macro 0.872
-- **Celda 22** — Modelo B: XGBoost, 10 features, F1-macro 0.910
+**Bloque 3 — Modelado y entrenamiento**
+Baseline (`DummyClassifier`); comparadores lineal (Regresión Logística) y no lineales (Random Forest, CatBoost); entrenamiento del Modelo A (XGBoost binario) con ponderación de clases y ajuste del umbral de decisión sobre entrenamiento; comparativa de los cuatro modelos en igualdad de condiciones; validación temporal expansiva XGBoost vs. Random Forest; desempeño por tipo de equipo; sensibilidad del horizonte temporal.
 
-### Bloque 4 — Exportación (Celdas 23a–23c)
-- **Celda 23a** — Descarga artefactos: `modelo_a.ubj`, `modelo_b.ubj`, encoders y mapas
-- **Celda 23b** — Matrices de confusión y feature importance en PNG
-- **Celda 23c** — Comparativa baseline vs XGBoost + distribución urgencia por equipo
+**Bloque 4 — Validación del modelo**
+Validación cruzada estratificada de 5 folds (estabilidad frente al muestreo); experimento de estrategias de balanceo: ponderación por costo frente a SMOTENC total y parcial.
 
-### Bloque 5 — Validación (Celdas 24–25)
-- **Celda 24** — Validación cruzada 5-fold + robustez con ruido gaussiano (5%–30% std)
-- **Celda 25** — Experimento SMOTE: total y parcial (60%), justificación de no uso
+**Bloque 5 — Capa descriptiva**
+Frecuencia de fallas por sistema; normalización y Pareto de componentes; heatmap de recurrencia temprana por tipo × sistema; serie temporal de fallas por tipo.
 
-### Bloque 6 — Protocolos (Celdas 26–27)
-- **Celda 26** — Tabla maestra: tipo × urgencia × sistema con Exact Match, CV por equipo, componente más frecuente, tipo de solución y semáforo F1 + n_casos
-- **Celda 27** — Checklist operativo por tipo de equipo ordenado por nivel de riesgo
-
----
+**Bloque 6 — Construcción de protocolos**
+Matriz histórica de priorización por tipo × sistema, con recurrencia, frecuencia, componentes frecuentes y reemplazados, horas de parada (con cobertura) y nivel de evidencia. Orienta qué inspeccionar; no es el checklist operativo. Descarga consolidada de entregables.
 
 ## Equipos y sistemas cubiertos
 
-**Tipos de equipo analizados:**
+**Tipos de equipo analizados**
 
-| Nombre corto | Nombre completo |
-|--------------|-----------------|
-| RX Fijo | Unidad Radiográfica Digital |
-| RX Móvil | Unidad Radiográfica Móvil |
-| Mamografía | Unidad Radiográfica Mamográfica |
-| Arco C | Unidad Radiográfica/Fluoroscópica Móvil |
-| TAC | Sis Exploración Tomografía Computarizada |
-| Fluoroscopía | Sistema radiográfico/fluoroscópico |
-| Angiografía | Sist Radiográf/Fluorosc Para Angiografía |
+| Nombre corto | Nombre completo                              |
+|--------------|----------------------------------------------|
+| RX Fijo      | Unidad Radiográfica Digital                  |
+| RX Móvil     | Unidad Radiográfica Móvil                    |
+| Mamografía   | Unidad Radiográfica Mamográfica              |
+| Arco C       | Unidad Radiográfica/Fluoroscópica Móvil      |
+| TAC          | Sis Exploración Tomografía Computarizada     |
+| Fluoro       | Sistema radiográfico/fluoroscópico           |
+| Angiografía  | Sist Radiográf/Fluorosc Para Angiografía     |
 
-**Sistemas afectados (clases Modelo B):**
+**Sistemas consolidados (variable `sistema_general`, 11 clases)**
 
-- Mecánico y de posicionamiento
-- Generación y detección de rayos X
-- Eléctrico del equipo
-- Control e interfaz de usuario
-- Procesamiento y almacenamiento
-- Comunicaciones
-- Falla desconocida
-- Seguridad del paciente
-- Usuario
-- Accesorios
+Mecánico y de posicionamiento · Generación y detección de rayos X · Eléctrico del equipo · Control e interfaz de usuario · Procesamiento y almacenamiento · Comunicaciones · Seguridad del paciente · Accesorios · Otro · Falla desconocida · Usuario.
 
----
+"Falla desconocida" (categoría residual no inspeccionable) y "Usuario" (remitida a una actividad transversal de capacitación) se excluyen de la matriz de priorización.
 
 ## Features del modelo
 
-### Modelo A — Periodo de fallo (10 features)
+**Modelo A — Periodo de fallo (11 features: 10 numéricas + tipo de equipo)**
 
-| Feature | Tipo | Descripción |
-|---------|------|-------------|
-| `fallos_30_dias` | Numérica | Fallos del equipo en los últimos 30 días |
-| `fallos_90_dias` | Numérica | Fallos del equipo en los últimos 90 días |
-| `tbf_promedio_equipo` | Numérica | TBF promedio histórico hasta ese evento |
-| `tendencia_tbf` | Numérica | Desviación del TBF actual vs. histórico |
-| `tasa_fallo_equipo` | Numérica | Fallos acumulados / edad en días |
-| `dias_desde_ultimo_fallo` | Numérica | Días desde el fallo anterior |
-| `criticidad` | Numérica | Índice compuesto de gravedad (1–5) |
-| `edad_dias` | Numérica | Días instalado al momento del fallo |
-| `horas_parada_acumuladas` | Numérica | Total horas fuera de servicio acumuladas |
-| `tipo_equipo` | Categórica | Tipo de equipo médico |
+| Feature                    | Tipo       | Descripción                                          |
+|----------------------------|------------|------------------------------------------------------|
+| tbf_dias                   | Numérica   | Intervalo desde el fallo anterior (TBF actual)       |
+| fallos_30_dias             | Numérica   | Fallos del equipo en los 30 días previos             |
+| fallos_90_dias             | Numérica   | Fallos del equipo en los 90 días previos             |
+| tbf_promedio_equipo        | Numérica   | TBF promedio histórico del equipo (fallos previos)   |
+| tendencia_tbf              | Numérica   | Desviación del TBF previo respecto al histórico      |
+| criticidad_temporal        | Numérica   | Índice de criticidad temporal, past-only (1–5)       |
+| edad_dias                  | Numérica   | Días instalado al momento del fallo                  |
+| horas_parada_acumuladas    | Numérica   | Horas fuera de servicio de fallos anteriores         |
+| tasa_fallo_equipo          | Numérica   | Ritmo de fallo del equipo (fallos por año)           |
+| tbf_anterior               | Numérica   | TBF del intervalo previo del equipo                  |
+| tipo_equipo                | Categórica | Tipo de equipo médico                                |
 
-### Modelo B — Sistema afectado (10 features)
-
-| Feature | Tipo | Descripción |
-|---------|------|-------------|
-| `componente_agrupado` | Categórica | Sistema al que pertenece el componente que falló |
-| `tipo_equipo` | Categórica | Tipo de equipo médico |
-| `tipo_solucion` | Categórica | Tipo de solución aplicada |
-| `hubo_cambio_componente` | Binaria | Si se reemplazó algún componente |
-| `criticidad` | Numérica | Índice de gravedad (1–5) |
-| `fallos_30_dias` | Numérica | Fallos en los últimos 30 días |
-| `edad_dias` | Numérica | Días instalado al momento del fallo |
-| `tbf_promedio_equipo` | Numérica | TBF promedio histórico |
-| `tendencia_tbf` | Numérica | Deterioro o mejora reciente |
-| `horas_parada_acumuladas` | Numérica | Total horas fuera de servicio |
-
-**Variable más importante Modelo B:** `componente_agrupado` — elevó F1-macro de 0.596 a 0.910.
-
----
+`criticidad_temporal` (ventana expansiva anual, past-only) reemplaza a la criticidad global dentro del modelo para evitar fuga temporal entre años; la criticidad global se conserva solo como variable descriptiva y de priorización. Las tres features de mayor importancia (fallos en 90 días, TBF promedio y tasa de fallo) concentran cerca del 44% de la importancia total, lo que confirma que la actividad reciente de fallos es la señal más predictiva.
 
 ## Análisis exploratorio destacado
 
-- **Asimetría TBF = 4.31** → justifica clasificación sobre regresión
-- **P(fallo ≤ 15 días) = 42.9%** → caída casi vertical en curva de supervivencia
-- **P(fallo ≤ 90 días) = 89.7%** → el 90% de los equipos falla antes de 3 meses
-- **Silhouette Score negativo** (UMAP) → no hay separabilidad lineal entre clases → justifica XGBoost no lineal
+- Distribución del TBF fuertemente asimétrica a la derecha (asimetría ≈ 3.96 en la población objetivo) y de alta varianza (0 a 631 días), lo que justifica clasificación binaria sobre regresión.
+- El 64% de los intervalos entre fallas registró una nueva falla dentro de los 30 días siguientes, lo que fundamenta el umbral del target y la clase "Requiere acción" (balance 64% / 36%).
+- La curva de supervivencia empírica (1−ECDF sobre los intervalos de TBF) muestra que a los 30 días una mayoría de los intervalos ya presentó la falla siguiente.
+- Coeficiente de silueta ≈ 0.011 sobre la proyección UMAP 2D: las clases no forman grupos separables por distancia. No es una prueba formal de no separabilidad, pero motiva evaluar modelos no lineales.
 
----
+## Experimentos
 
-## Experimentos adicionales
+| Experimento                         | Resultado                                              |
+|-------------------------------------|-------------------------------------------------------|
+| Comparación de 4 modelos (test)     | Empate técnico RF (0.658) vs. XGBoost (0.651)         |
+| Validación temporal (walk-forward)  | Equivalencia estadística; XGBoost más estable         |
+| Sensibilidad del horizonte          | 15/30/45/60/90 días: 30 días competitivo y estable    |
+| Balanceo: SMOTENC total             | Aumenta la brecha train–test (mayor sobreajuste)      |
+| Balanceo: SMOTENC parcial (60%)     | Sin mejora relevante de desempeño                     |
 
-| Experimento | Resultado | Conclusión |
-|-------------|-----------|------------|
-| Classifier Chain A→B | F1-B: 0.767 | ↓ Targets independientes, no mejora |
-| Classifier Chain B→A | F1-A: degradado | ↓ No mejora |
-| CatBoost Modelo B | F1: 0.806 | ↓ XGBoost más robusto globalmente |
-| SMOTE total | Gap aumenta +0.021 | ↓ Descartado |
-| SMOTE parcial 60% | Gap aumenta +0.018 | ↓ Descartado |
-
-> **Hallazgo clave:** Los targets `periodo_fallo` y `sistema_general` son prácticamente independientes. La Classifier Chain se documentó como experimento metodológico válido pero sin ganancia en este dataset. `compute_sample_weight("balanced")` supera a SMOTE preservando la distribución real de fallas.
-
----
+**Hallazgo clave.** Las tres estrategias de balanceo alcanzan un F1-macro equivalente; la diferencia decisiva es la brecha train–test, que el sobremuestreo sintético incrementa al memorizar puntos artificiales. Se adopta `compute_sample_weight("balanced")`, que equilibra las clases sin generar datos artificiales y preserva la distribución real de fallas. A esto se suma un criterio de dominio: interpolar variables entre órdenes de equipos distintos genera registros que no corresponden a eventos reales.
 
 ## Resultados visuales
 
-### Modelo A — Urgencia
-![Matriz de confusión A](assets/matriz_confusion_modelo_a.png)
-![Feature importance A](assets/feature_importance_modelo_a.png)
-![Baseline vs XGBoost A](assets/baseline_vs_xgboost_modelo_a.png)
+- Análisis de TBF y fundamento del umbral — `assets/analisis_tbf.png`
+- Distribución del target por tipo de equipo — `assets/distribucion_target.png`
+- Separabilidad UMAP del target — `assets/separabilidad_umap.png`
+- Comparativa de los 4 modelos (global y clase crítica) — `assets/comparativa_4_modelos_a.png`, `assets/comparativa_4_modelos_clase_a.png`
+- Validación temporal comparativa — `assets/validacion_temporal_comparativa.png`
+- Desempeño por tipo de equipo — `assets/desempeno_por_tipo.png`
+- Sensibilidad del horizonte temporal — `assets/sensibilidad_horizonte.png`
 
-### Modelo B — Sistema afectado
-![Matriz de confusión B](assets/matriz_confusion_modelo_b.png)
-![Feature importance B](assets/feature_importance_modelo_b.png)
-![Baseline vs XGBoost B](assets/baseline_vs_xgboost_modelo_b.png)
+## Matriz de priorización y checklist
 
-### Distribución por equipo
-![Distribución urgencia](assets/distribucion_periodo_por_equipo.png)
+El producto del Bloque 6 es la **matriz histórica de priorización** (`matriz_priorizacion.csv` / `.html`). Cada fila corresponde a un sistema de un tipo de equipo y reúne recurrencia temprana (`tbf_siguiente ≤ 30 días`), frecuencia de fallas, componentes frecuentes y reemplazados, horas de parada promedio (solo sobre registros con dato real, con indicador de cobertura) y nivel de evidencia.
 
----
+Criterio de inclusión en la matriz: recurrencia ≥ 40% y evidencia ≥ Media (n_fallas ≥ 10); un componente dominante (≥5 casos, ≥25%) actúa como señal de refuerzo, no como condición obligatoria.
 
-## Checklist interactivo
+La matriz **no es** el checklist operativo. El checklist se elabora en una etapa posterior a partir de la matriz, los manuales del fabricante, los criterios de aceptación y el criterio de ingeniería clínica.
 
-El checklist operativo por tipo de equipo está disponible en [`checklist_final.html`](checklist_final.html). Incluye para cada sistema:
-
-- Clasificación de urgencia dominante (⚡ Alta urgencia · 📅 Programable · ✅ Preventivo)
-- Distribución histórica %Alta / %Prog / %Prev con barras visuales
-- N total de registros históricos
-- Horas de parada promedio y máxima del componente más frecuente
-- Tasa de cambio de componente
-- Componente físico top a verificar
-- Acción principal recomendada
-- F1 del Modelo B y semáforo de confianza 🟢 🟡 🔴
-
----
-
-## Semáforo de confianza
-
-| Semáforo | Criterio | Acción recomendada |
-|----------|----------|--------------------|
-| 🟢 **VERDE** | F1 ≥ 0.85 y N ≥ 5 | Protocolo activable automáticamente |
-| 🟡 **AMARILLO** | F1 ≥ 0.70 y N ≥ 3 | Checklist con validación del técnico |
-| 🔴 **ROJO** | F1 bajo o N insuficiente | Checklist preventiva genérica + criterio experto |
-
----
+**Alcance del componente predictivo por tipo de equipo.** El desempeño no es homogéneo: en equipos con mayor volumen (RX Móvil, RX Fijo, TAC) el modelo alcanza un desempeño aceptable; el Arco C se clasifica como no apto (recall de la clase crítica 0.000 pese a muestra suficiente, asociado a su baja recurrencia del 34%); tipos como Fluoro presentan desempeño limitado por muestra reducida (n=45), no por incapacidad del modelo. En los tipos sin desempeño aceptable la priorización se apoya en el análisis histórico de la matriz.
 
 ## Requisitos
 
-```python
+```
 pandas
 numpy
 scikit-learn
 xgboost
+catboost
 umap-learn
 plotly
+kaleido
 matplotlib
+squarify
 rapidfuzz
 imbalanced-learn
-joblib
 ```
 
 Instalar en Colab:
 
-```bash
-pip install xgboost umap-learn plotly rapidfuzz imbalanced-learn
 ```
-
----
+pip install xgboost catboost umap-learn plotly kaleido squarify rapidfuzz imbalanced-learn
+```
 
 ## Cómo ejecutar
 
-1. Abrir el notebook en Google Colab
-2. Ejecutar las celdas en orden secuencial (Bloques 1 → 6)
-3. En **Celda 1** subir el archivo Excel de órdenes de mantenimiento cuando se solicite
-4. Los artefactos y checklists se descargan automáticamente en los Bloques 4 y 6
+1. Abrir el notebook en Google Colab.
+2. Ejecutar las celdas en orden secuencial (Bloques 1 → 6).
+3. En la primera celda, subir el archivo Excel de órdenes de mantenimiento cuando se solicite.
+4. Las figuras y la matriz de priorización (PNG, CSV y HTML) se descargan de forma consolidada en la celda final.
 
-> El dataset del hospital no se incluye en este repositorio por restricciones de confidencialidad clínica.
-
----
+El dataset del hospital no se incluye en este repositorio por restricciones de confidencialidad clínica.
 
 ## Limitaciones
 
-- Dataset de un único hospital — la generalización a otras instituciones requiere reentrenamiento
-- Clases minoritarias con pocos registros: `usuario` y `seguridad del paciente`
-- Los modelos están entrenados sobre datos 2020–2025 de FVL exclusivamente
-
----
+- Dataset de un único hospital (FVL, 2020–2025); la generalización a otras instituciones requeriría reentrenamiento.
+- Registro incompleto de horas de parada: solo el 10,4% de los eventos (125 de 1.199), con cobertura desigual entre tipos. Se usa como información complementaria, nunca como criterio de priorización.
+- `criticidad_temporal` corrige la fuga temporal entre años, pero conserva una fuga intra-anual acotada por usar ventana anual en lugar de atómica; se declara como limitación.
+- La validación temporal no aplica purga entre folds; el posible solape de etiquetas en el límite de año se declara como limitación.
+- Censura por cierre del estudio: los últimos eventos de cada equipo, sin falla posterior observada, se excluyen del entrenamiento.
+- Tipos con muestra reducida o baja recurrencia (Fluoro, Arco C) tienen desempeño predictivo limitado o no apto.
 
 ## Trabajo futuro
 
-- [ ] Ampliar dataset con datos de nuevos equipos incorporados al hospital
-- [ ] Despliegue como API REST para integración con sistemas CMMS del hospital
-- [ ] Extensión del protocolo a equipos no ionizantes (ultrasonido, resonancia magnética)
-- [ ] Validación prospectiva del checklist con el equipo de ingeniería clínica de FVL
+- Mejorar la captura de horas de parada en la práctica de registro de la institución.
+- Reducir la fuga intra-anual mediante una ventana atómica o purga temporal explícita.
+- Ampliar el dataset con datos de nuevos equipos incorporados al hospital.
+- Validación prospectiva de los checklists con el equipo de ingeniería clínica de FVL.
+- Extensión de la metodología a equipos de funcionamiento no ionizante (ultrasonido, resonancia magnética).
 
----
 
 ## Autoras
 
